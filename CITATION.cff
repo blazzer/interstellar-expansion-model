@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software in research, please cite it as below."
+title: "Interstellar Expansion Percolation Model"
+authors:
+  - family-names: "Ostashewski"
+    given-names: "Stan"
+version: 0.1.0
+date-released: 2026-05-31
+url: "https://github.com/blazzer/interstellar-expansion-model"
+license: MIT
+type: software
+abstract: >
+  A grid-based simulation exploring bounded expansion dynamics for hypothetical
+  interstellar civilizations. Models both biological and robotic colonization
+  waves under constraints on motivation, coordination, goal coherence, resource
+  depletion, and failure cascades - providing a tunable parametric framework
+  for exploring conditions under which interstellar expansion remains bounded
+  rather than achieving Hart-Tipler galactic colonization.
+keywords:
+  - "fermi paradox"
+  - "interstellar colonization"
+  - "agent-based simulation"
+  - "astrobiology"
+  - "percolation"
+  - "bounded expansion"
