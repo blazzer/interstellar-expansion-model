@@ -45,6 +45,66 @@ const timeJumpEl = document.getElementById('timeJump');
 const chkProfiling = document.getElementById('chkProfiling');
 const btnResetProfiling = document.getElementById('btnResetProfiling');
 const btnViewProfiling = document.getElementById('btnViewProfiling');
+const appEl = document.querySelector('.app');
+const btnAdvanceMobile = document.getElementById('btnAdvanceMobile');
+const btnNextEventMobile = document.getElementById('btnNextEventMobile');
+const btnStopMobile = document.getElementById('btnStopMobile');
+const btnResetMobile = document.getElementById('btnResetMobile');
+const runStatusBanner = document.getElementById('runStatusBanner');
+const runStatusYear = document.getElementById('runStatusYear');
+const runHeaderYear = document.getElementById('runHeaderYear');
+const MQ_MOBILE = window.matchMedia('(max-width: 768px)');
+
+function isMobileLayout() {
+  return MQ_MOBILE.matches;
+}
+
+function formatJumpYears(years) {
+  const abs = Math.abs(years);
+  if (abs >= 1e9) {
+    const n = years / 1e9;
+    return `${Number.isInteger(n) ? n : n.toFixed(1)}B yr`;
+  }
+  if (abs >= 1e6) {
+    const n = years / 1e6;
+    return `${Number.isInteger(n) ? n : n.toFixed(1)}M yr`;
+  }
+  if (abs >= 1e3) {
+    const n = years / 1e3;
+    return `${Number.isInteger(n) ? n : n.toFixed(1)}k yr`;
+  }
+  return `${years} yr`;
+}
+
+function updateAdvanceButtonLabels() {
+  const ticks = Math.max(1, Math.floor(parseFloat(timeJumpEl?.value) || 1));
+  const text = `Advance ${formatJumpYears(ticks * TICK)}`;
+  for (const el of document.querySelectorAll('.js-btn-advance')) {
+    el.textContent = text;
+  }
+}
+
+function setView(view) {
+  if (!appEl) return;
+  appEl.dataset.view = view;
+  const onSetup = view === 'setup';
+  for (const el of document.querySelectorAll('.js-view-setup')) {
+    el.setAttribute('aria-current', onSetup ? 'page' : 'false');
+  }
+  for (const el of document.querySelectorAll('.js-view-run')) {
+    el.setAttribute('aria-current', onSetup ? 'false' : 'page');
+  }
+  if (view === 'run') {
+    requestAnimationFrame(() => {
+      resizeCanvas();
+      render();
+    });
+  }
+}
+
+function maybeEnterRunView() {
+  if (isMobileLayout()) setView('run');
+}
 
 function helpBtn(id) {
   return `<button type="button" class="help-btn" data-help="${id}" aria-label="Help">?</button>`;
@@ -579,6 +639,9 @@ function updateReadout() {
     </div>
     ${profilingHtml}`;
   readoutYearEl = document.getElementById('readoutYear');
+  const yearText = stats.currentYear.toLocaleString();
+  if (runStatusYear) runStatusYear.textContent = yearText;
+  if (runHeaderYear) runHeaderYear.textContent = `Year ${yearText}`;
 
   readoutEl.querySelectorAll('.help-btn').forEach((btn) => {
     btn.addEventListener('click', (e) => {
@@ -605,12 +668,22 @@ controlsEl.addEventListener('click', (e) => {
 
 function setRunningUI(running) {
   isRunning = running;
-  btnAdvance.disabled = running;
-  btnNextEvent.disabled = running;
-  btnReset.disabled = running;
+  for (const el of [btnAdvance, btnAdvanceMobile]) {
+    if (el) el.disabled = running;
+  }
+  for (const el of [btnNextEvent, btnNextEventMobile]) {
+    if (el) el.disabled = running;
+  }
+  for (const el of [btnReset, btnResetMobile]) {
+    if (el) el.disabled = running;
+  }
   btnPreset.disabled = running;
   btnHartTipler.disabled = running;
-  btnStop.disabled = !running;
+  for (const el of [btnStop, btnStopMobile]) {
+    if (el) el.disabled = !running;
+  }
+  if (runStatusBanner) runStatusBanner.hidden = !running;
+  if (running) maybeEnterRunView();
 }
 
 function yieldToUI() {
@@ -724,8 +797,30 @@ function loadHartTiplerPreset() {
 }
 
 btnAdvance.addEventListener('click', advanceTime);
+btnAdvanceMobile?.addEventListener('click', advanceTime);
 btnNextEvent.addEventListener('click', forwardToNextEvent);
+btnNextEventMobile?.addEventListener('click', forwardToNextEvent);
 btnStop.addEventListener('click', stopSimulation);
+btnStopMobile?.addEventListener('click', stopSimulation);
+for (const el of document.querySelectorAll('.js-view-setup')) {
+  el.addEventListener('click', () => setView('setup'));
+}
+for (const el of document.querySelectorAll('.js-view-run')) {
+  el.addEventListener('click', () => setView('run'));
+}
+timeJumpEl?.addEventListener('input', updateAdvanceButtonLabels);
+timeJumpEl?.addEventListener('change', updateAdvanceButtonLabels);
+MQ_MOBILE.addEventListener('change', () => {
+  if (!isMobileLayout() && appEl) {
+    appEl.dataset.view = 'setup';
+  } else if (isMobileLayout()) {
+    setView(isRunning ? 'run' : 'setup');
+  }
+  requestAnimationFrame(() => {
+    resizeCanvas();
+    render();
+  });
+});
 btnPreset.addEventListener('click', loadBoundedPreset);
 btnHartTipler.addEventListener('click', loadHartTiplerPreset);
 btnRules.addEventListener('click', () => showDialogAtAnchor(rulesDialog, btnRules));
@@ -746,11 +841,14 @@ canvas.addEventListener('click', (e) => {
   const cell = canvasCellFromEvent(e);
   if (cell) showNodeDetails(cell.r, cell.c, canvasCellRect(cell.r, cell.c));
 });
-btnReset.addEventListener('click', () => {
+function resetSimulation() {
   simulationRunId++;
   setRunningUI(false);
   initSimulation(readRawParams());
-});
+}
+
+btnReset.addEventListener('click', resetSimulation);
+btnResetMobile?.addEventListener('click', resetSimulation);
 
 chkProfiling?.addEventListener('change', () => {
   if (!sim) return;
@@ -776,5 +874,10 @@ window.addEventListener('resize', () => {
   render();
 });
 
+if (appEl && isMobileLayout()) {
+  setView('setup');
+}
+
+updateAdvanceButtonLabels();
 applyParamsToInputs(BOUNDED_EXPANSION_PARAMS);
 initSimulation(readRawParams());
