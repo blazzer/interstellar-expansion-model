@@ -447,15 +447,219 @@
     .node-history li { margin-bottom: 4px; }
 
     .canvas-wrap canvas { cursor: crosshair; }
+
+    /* -- Main stage (grid + legend) -- */
+    .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: #010409;
+    }
+
+    .stage-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) min(200px, 26%);
+      grid-template-rows: 1fr auto;
+      gap: 12px;
+      padding: 12px;
+      min-height: 0;
+    }
+
+    .stage-layout .canvas-wrap {
+      grid-column: 1;
+      grid-row: 1 / -1;
+      flex: unset;
+      min-height: 0;
+    }
+
+    .stage-aside {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: start;
+      max-height: 100%;
+      overflow-y: auto;
+    }
+
+    .legend-block h2 {
+      margin-bottom: 8px;
+    }
+
+    /* -- Mobile run chrome (hidden on desktop) -- */
+    .mobile-only {
+      display: none;
+    }
+
+    .run-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      padding-top: max(10px, env(safe-area-inset-top));
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .run-header .run-year {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .run-header .btn-danger {
+      flex: 0 0 auto;
+      min-width: 7rem;
+      padding: 8px 14px;
+    }
+
+    .run-status-banner {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #3d2a00;
+      background: rgba(210, 153, 34, 0.12);
+      font-size: 0.82rem;
+    }
+
+    .run-status-banner[hidden] {
+      display: none !important;
+    }
+
+    .run-status-banner .btn-danger {
+      flex: 0 0 auto;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      margin-left: auto;
+    }
+
+    .mobile-footer {
+      flex-shrink: 0;
+      flex-direction: column;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .mobile-time-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px 12px 0;
+    }
+
+    .mobile-time-bar .btn-row button {
+      font-size: 0.8rem;
+      padding: 10px 8px;
+    }
+
+    .view-switcher {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+
+    .view-switcher button {
+      flex: 1;
+    }
+
+    .view-switcher button[aria-current="page"] {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(88, 166, 255, 0.08);
+    }
+
+    @media (max-width: 768px) {
+      html, body {
+        overflow: hidden;
+        height: 100%;
+        height: 100dvh;
+      }
+
+      .app {
+        flex-direction: column;
+        height: 100dvh;
+        width: 100%;
+      }
+
+      .mobile-only {
+        display: flex;
+      }
+
+      .mobile-footer {
+        display: flex;
+      }
+
+      .sidebar-time-actions {
+        display: none;
+      }
+
+      .sidebar {
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        flex: 1;
+        min-height: 0;
+        border-right: none;
+        border-bottom: none;
+      }
+
+      .app[data-view="run"] .sidebar {
+        display: none;
+      }
+
+      .app[data-view="setup"] .stage {
+        display: none;
+      }
+
+      .stage {
+        flex: 1;
+        min-height: 0;
+      }
+
+      .stage-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) auto;
+        padding: 8px;
+      }
+
+      .stage-layout .canvas-wrap {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .stage-aside {
+        grid-column: 1;
+        grid-row: 2;
+        max-height: none;
+      }
+
+      .legend-block .legend {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" data-view="setup">
     <aside class="sidebar">
       <h1>Interstellar Expansion<br>Percolation Model</h1>
       <button class="btn-secondary" id="btnRules" type="button" style="width:100%">Simulation Rules</button>
       <button class="btn-secondary preset-btn" id="btnPreset" type="button">Bounded Expansion Preset</button>
       <button class="btn-secondary preset-btn" id="btnHartTipler" type="button">Hart-Tipler (Unconstrained) Preset</button>
+
+      <div class="run-status-banner" id="runStatusBanner" hidden>
+        <span>Simulation running — year <strong id="runStatusYear">0</strong></span>
+      </div>
 
       <section>
         <h2>Parameters</h2>
@@ -469,13 +673,13 @@
             Time Jump (x1,000 years)
             <input type="number" id="timeJump" value="100" min="1" max="100000" step="1">
           </label>
-          <div class="btn-row">
-            <button class="btn-primary" id="btnAdvance">Advance Time</button>
-            <button class="btn-secondary" id="btnNextEvent">Forward to Next Event</button>
+          <div class="btn-row sidebar-time-actions">
+            <button class="btn-primary js-btn-advance" id="btnAdvance" type="button">Advance 100k yr</button>
+            <button class="btn-secondary" id="btnNextEvent" type="button">Forward to Next Event</button>
           </div>
-          <div class="btn-row">
-            <button class="btn-danger" id="btnStop" disabled>Stop Forward</button>
-            <button class="btn-secondary" id="btnReset">Reset Simulation</button>
+          <div class="btn-row sidebar-time-actions">
+            <button class="btn-danger" id="btnStop" type="button" disabled>Stop Forward</button>
+            <button class="btn-secondary" id="btnReset" type="button">Reset Simulation</button>
           </div>
           <label class="checkbox-row">
             <input type="checkbox" id="chkProfiling">
@@ -492,16 +696,41 @@
         <h2>Data Readout</h2>
         <div class="readout" id="readout"></div>
       </section>
-
-      <section>
-        <h2>Legend</h2>
-        <div class="legend" id="legend"></div>
-      </section>
     </aside>
 
-    <main class="canvas-wrap">
-      <canvas id="grid"></canvas>
+    <main class="stage">
+      <div class="run-header mobile-only" id="runHeader">
+        <span class="run-year" id="runHeaderYear">Year 0</span>
+      </div>
+      <div class="stage-layout">
+        <div class="canvas-wrap">
+          <canvas id="grid"></canvas>
+        </div>
+        <aside class="stage-aside">
+          <section class="legend-block">
+            <h2>Legend</h2>
+            <div class="legend" id="legend"></div>
+          </section>
+        </aside>
+      </div>
     </main>
+
+    <footer class="mobile-footer mobile-only">
+      <div class="mobile-time-bar">
+        <div class="btn-row">
+          <button class="btn-primary js-btn-advance" id="btnAdvanceMobile" type="button">Advance 100k yr</button>
+          <button class="btn-secondary" id="btnNextEventMobile" type="button">Forward to Next Event</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn-danger" id="btnStopMobile" type="button" disabled>Stop Forward</button>
+          <button class="btn-secondary" id="btnResetMobile" type="button">Reset Simulation</button>
+        </div>
+      </div>
+      <nav class="view-switcher" aria-label="View">
+        <button class="btn-secondary js-view-setup" id="btnViewSetup" type="button" aria-current="page">Setup</button>
+        <button class="btn-secondary js-view-run" id="btnViewRun" type="button">Live grid</button>
+      </nav>
+    </footer>
   </div>
 
   <dialog class="rules-dialog" id="rulesDialog">
